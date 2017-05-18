@@ -1,0 +1,86 @@
+---
+- name: add group "tomcat"
+  group: name=tomcat
+  sudo: yes
+
+- name: add user "tomcat"
+  user: name=tomcat group=tomcat home=/usr/share/tomcat createhome=no
+  sudo: yes
+
+- name: Download Tomcat
+  get_url: url=https://archive.apache.org/dist/tomcat/tomcat-8/v{{ tomcat8_version }}/bin/apache-tomcat-{{ tomcat8_version }}.tar.gz dest={{download_folder}}/apache-tomcat-{{ tomcat8_version }}.tar.gz
+  sudo: yes
+
+- name: Create tomcat installation dir
+  file: path={{ layout.installation_dir }} state=directory
+  sudo: yes
+
+- name: Extract archive
+  command: chdir=/usr/share /bin/tar xvf {{download_folder}}/apache-tomcat-{{ tomcat8_version }}.tar.gz -C {{ layout.installation_dir }} creates={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}
+  sudo: yes
+
+- name: Change ownership of Tomcat installation
+  file: path={{ layout.installation_dir }}/ owner=tomcat group=tomcat state=directory mode="u=rwX,g=rX,o=rX" recurse=yes
+  sudo: yes
+
+- name: Download hotswap-agent
+  get_url:
+    url: "https://github.com/HotswapProjects/HotswapAgent/releases/download/{{hotswap_agent_version}}/hotswap-agent-{{hotswap_agent_version}}.jar"
+    dest: "{{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/bin/hotswap-agent.jar"
+  sudo: yes
+
+- name: Ensure /usr/share/tomcat dir exists
+  file: path=/usr/share/tomcat state=directory owner=tomcat group=tomcat recurse=yes
+  sudo: yes
+  
+- name: Copy keystore
+  sudo: yes
+  copy: dest=/usr/share/tomcat/.keystore src=keystore owner=tomcat group=tomcat mode="u=rwx,g=rx,o=rx"
+  notify: restart tomcat
+  
+- name: Configure Tomcat server
+  template: src=server.xml dest={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/conf/ owner=tomcat group=tomcat mode="u=rw,g=r,o=r"
+  notify: restart tomcat
+  sudo: yes
+  
+- name: Configure manager application
+  copy: src=manager.xml dest={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/conf/Catalina/localhost/ owner=tomcat group=tomcat mode="u=rw,g=r,o=r"
+  notify: restart tomcat
+  sudo: yes
+
+- name: Configure host-manager application
+  copy: src=host-manager.xml dest={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/conf/Catalina/localhost/ owner=tomcat group=tomcat mode="u=rw,g=r,o=r"
+  notify: restart tomcat
+  sudo: yes
+  
+- name: Configure Tomcat users
+  template: src=tomcat-users.xml dest={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/conf/ owner=tomcat group=tomcat mode="u=rw,g=r,o=r"
+  notify: restart tomcat
+  sudo: yes
+
+- name: Install context.xml
+  template: src=context.xml dest={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/conf/ mode=0644 owner=tomcat group=tomcat
+  sudo: yes
+  
+- name: Copy environment properies
+  template: src=setenv.sh dest={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/bin/ mode=0754 owner=tomcat group=tomcat
+  sudo: yes 
+  
+- name: copy application properties
+  template: dest='{{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/lib/application.properties' src=application.properties  mode=0644 owner=tomcat group=tomcat
+  sudo: yes
+  
+- name: Add tomcat systemd unit file
+  template: src=tomcat.service dest=/etc/systemd/system/{{ layout.service_name }}.service owner=root group=root mode=0755
+  sudo: yes
+  
+- name: systemd daemon-reload
+  shell: systemctl daemon-reload
+  sudo: yes
+
+- name: Start tomcat
+  shell: systemctl start {{ layout.service_name }}
+  sudo: yes
+
+- name: wait for tomcat to start
+  wait_for: port={{layout.http_port}}

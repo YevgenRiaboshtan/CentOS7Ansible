@@ -1,0 +1,6 @@
+- hosts: localhost
+  roles:
+      - java8
+      - oracle
+      - role: tomcat8
+        layout: "{{ layouts.layout8080 }}"

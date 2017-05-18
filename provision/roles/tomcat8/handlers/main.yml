@@ -1,0 +1,4 @@
+---
+- name: restart tomcat
+  shell: systemctl restart {{ layout.service_name }}
+  sudo: yes

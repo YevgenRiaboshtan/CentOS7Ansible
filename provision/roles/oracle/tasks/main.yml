@@ -1,0 +1,34 @@
+---
+- name: ensure packages required are installed
+  yum: pkg={{item}} state=present
+  with_items:
+    - libaio
+    - bc
+    - flex
+    - unzip
+  sudo: yes
+
+- name: Download Oracle
+  command: "wget -q -O /vagrant/cache/oracle-xe-11.2.0-1.0.x86_64.rpm.zip http://192.168.178.99/files/k2/oracle-xe-11.2.0-1.0.x86_64.rpm.zip creates=/vagrant/cache/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
+
+- name: unzip oracle rpm
+  command: /usr/bin/unzip -q /vagrant/cache/oracle*.rpm.zip -d /vagrant/cache/oracle creates=/vagrant/cache/oracle/Disk1
+  sudo: yes
+
+- name: install oracle
+  shell: /bin/rpm -ivh /vagrant/cache/oracle/Disk1/oracle-xe-11.2.0-1.0.x86_64.rpm creates=/u01
+  sudo: yes
+
+- name: configure oracle
+  shell: /etc/init.d/oracle-xe configure responseFile=/vagrant/provision/roles/oracle/files/xe.rsp
+  ignore_errors: True
+  sudo: yes
+
+- name: setup oracle environment
+  shell: /bin/echo 'source /u01/app/oracle/product/11.2.0/xe/bin/oracle_env.sh' >> /home/vagrant/.bash_profile
+  sudo: yes
+
+- name: set oracle listener
+  shell: ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe /u01/app/oracle/product/11.2.0/xe/bin/sqlplus
+    system/manager@localhost < /vagrant/provision/roles/oracle/files/set_listener.sql
+  sudo: yes

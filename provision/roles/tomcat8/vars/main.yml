@@ -1,0 +1,18 @@
+# Here are variables related to the Tomcat installation
+# This will configure a default manager-gui user:
+---
+hotswap_agent_version: 1.0
+layouts:
+  layout8080:
+    http_port: 8080
+    https_port: 443
+    debug: true
+    debug_port: 8000
+    server_port: 8005
+    service_name: tomcat
+    installation_dir: /usr/share/tomcat
+    configuration_dir: /usr/share/tomcat/config
+    admin_username: admin
+    admin_password: adminpass
+    #datasources:
+    #    - { name: jdbc/NAME_DS, url: "jdbc:oracle:thin:@host:port:SID", driverClassName: "oracle.jdbc.OracleDriver", username: "userName", password: "userPass", maxTotal: "10", initialPoolSize: "1", maxIdle: "2", maxWaitMillis: "2000", singleton: "false" }

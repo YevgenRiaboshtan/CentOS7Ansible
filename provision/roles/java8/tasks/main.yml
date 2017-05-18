@@ -1,0 +1,57 @@
+---
+  - name: Install java
+    sudo: yes
+    package:
+      name: java-1.8.0-openjdk-devel
+      state: latest
+
+  - name: Get java path
+    shell: readlink -e /usr/lib/jvm/java/jre/bin/java
+    register: java_realpath
+
+  - name: set capability to bind on ports <1024
+    shell: setcap 'cap_net_bind_service=+ep' {{java_realpath.stdout}}
+    sudo: yes
+
+  - name: Get ld path
+    command: readlink -e /usr/lib/jvm/java/lib/amd64/jli
+    register: ld_realpath
+
+  - name: Add ld conf for java
+    template: src=java-x86_64.conf dest=/etc/ld.so.conf.d/java-x86_64.conf
+    sudo: yes
+
+  - name: Reload ldconfig
+    shell: ldconfig
+    sudo: yes
+
+  - name: Create dcevm dir
+    file: path=/vagrant/cache/DCEVM-light-{{dcevm_version_no}} state=directory
+    sudo: yes
+
+  - name: Install unzip
+    sudo: yes
+    package:
+      name: unzip
+      state: latest
+  
+  - name: set JAVA_HOME
+    template: src=java_profile.j2 dest=/etc/profile.d/java.sh
+    sudo: yes
+
+  - name: Download DCEVM
+    unarchive:
+      src: "https://github.com/dcevm/dcevm/releases/download/light-jdk{{dcevm_version_no}}+{{dcevm_build_no}}/DCEVM-light-{{dcevm_version_no}}-installer.jar"
+      dest: /vagrant/cache/DCEVM-light-{{dcevm_version_no}}
+      remote_src: true
+
+  - name: Create dcevm dir
+    file: path=/usr/lib/jvm/java/jre/lib/amd64/dcevm state=directory
+    sudo: yes
+
+  - name: Copy to target
+    copy:
+      src: "/vagrant/cache/DCEVM-light-{{dcevm_version_no}}/linux_amd64_compiler2/product/libjvm.so"
+      dest: /usr/lib/jvm/java/jre/lib/amd64/dcevm
+    sudo: yes
+

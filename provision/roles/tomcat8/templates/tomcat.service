@@ -1,0 +1,24 @@
+[Unit]
+Description=Apache Tomcat 8 Servlet Container
+After=syslog.target network.target
+ 
+[Service]
+User=tomcat
+Group=tomcat
+Type=forking
+Environment=TOMCAT_USER=tomcat
+Environment=CATALINA_HOME={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}
+Environment=CATALINA_BASE={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}
+{% if layout.debug_port is defined %}
+	#TOMCAT_DEBUG_PORT
+	Environment=JPDA_ADDRESS={{ layout.debug_port }}
+{% endif %}
+
+ExecStart={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/bin/startup.sh
+ExecStop={{ layout.installation_dir }}/apache-tomcat-{{ tomcat8_version }}/bin/shutdown.sh
+
+Restart=always
+ 
+
+[Install]
+WantedBy=multi-user.target
